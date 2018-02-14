@@ -124,6 +124,13 @@ public class MainActivity extends Activity {
                 }
             });
 
+            play.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    setupPlayButton(words[k]);
+                }
+            });
+
             next.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -190,17 +197,6 @@ public class MainActivity extends Activity {
             play=(ImageButton)findViewById(R.id.playButton);
             prev=(ImageButton)findViewById(R.id.prevButton);
             next=(ImageButton)findViewById(R.id.nextButton);
-
-
-            play.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                }
-            });
-
-
-
 
             EditText ed = (EditText) findViewById(R.id.check_word);
 
