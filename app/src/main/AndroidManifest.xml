@@ -38,9 +38,10 @@
 
         <provider
             android:name=".WordProvider"
-            android:authorities="com.amazonaws.demo.polly"
+            android:authorities="com.amazonaws.demo.polly.WordProvider"
             android:enabled="true"
             android:exported="true"
+            android:multiprocess="true"
             android:grantUriPermissions="true"
             android:permission="@string/read" />
     </application>

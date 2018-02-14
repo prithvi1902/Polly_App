@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class WordProvider extends ContentProvider {
@@ -27,7 +28,7 @@ public class WordProvider extends ContentProvider {
 
     SQLiteDatabase sqldb;
 
-    List<String> words=new ArrayList<String>();
+    private static HashMap<String,String> words;
 
     private static final UriMatcher MATCHER=new UriMatcher(UriMatcher.NO_MATCH);
 
@@ -66,9 +67,11 @@ public class WordProvider extends ContentProvider {
     public boolean onCreate() {
         // TODO: Implement this to initialize your content provider on startup.
         dba=new DataBaseAccess(getContext());
-        try (SQLiteDatabase sqldb = dba.open()) {
-        }
-        return true;
+        sqldb=dba.open();
+        if(sqldb.isOpen() )
+            return true;
+        else
+            return false;
     }
 
     @Override
@@ -78,7 +81,18 @@ public class WordProvider extends ContentProvider {
 
         qb.setTables("wordlist");
 
-        Cursor cursor=qb.query(sqldb,projection,selection,selectionArgs,null,null,null );
+        switch (MATCHER.match(uri)) {
+            case TOGET_WORDS:
+
+                // A projection map maps from passed column names to database column names
+                qb.setProjectionMap(words);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown URI " + uri);
+        }
+
+        Cursor cursor=qb.query(sqldb,projection,selection,selectionArgs,null,null,sortOrder );
+
         cursor.setNotificationUri(getContext().getContentResolver(),uri);
 
         return cursor;

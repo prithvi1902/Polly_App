@@ -37,8 +37,8 @@ public class DataBaseAccess {
      * Open the database connection.
      */
     public SQLiteDatabase open() {
-        this.database = openHelper.getWritableDatabase();
-        return this.database;
+        return openHelper.getWritableDatabase();
+        /* return this.database; */
     }
 
     /**
@@ -48,37 +48,5 @@ public class DataBaseAccess {
         if (database != null) {
             this.database.close();
         }
-    }
-
-
-
-    /*public List<String> getData(String level){
-
-        List<String> word=new ArrayList<>();
-
-        String SELECT_QUERY = "SELECT word FROM wordlist WHERE level = '"+level+"'";
-
-        Cursor cursor=database.rawQuery(SELECT_QUERY,null);
-
-        cursor.moveToFirst();
-        while(!cursor.isAfterLast())
-        {
-                word.add(cursor.getString(0));
-                cursor.moveToNext();
-        }
-
-        cursor.close();
-        // return word list
-        return word;
-    }*/
-
-
-    public Cursor getData(String level){
-
-        String SELECT_QUERY = "SELECT * FROM wordlist WHERE level='"+level+"'";
-
-        Cursor cursor=database.rawQuery(SELECT_QUERY,null);
-
-        return cursor;
     }
 }

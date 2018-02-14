@@ -18,6 +18,7 @@ package com.amazonaws.demo.polly;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.ContentProvider;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.media.AudioManager;
@@ -58,12 +59,9 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends Activity{
+public class MainActivity extends Activity {
 
     private static final String TAG = "PollyDemo";
-    private static final String KEY_SELECTED_VOICE_POSITION = "SelectedVoicePosition";
-    private static final String KEY_VOICES = "Voices";
-    private static final String KEY_SAMPLE_TEXT = "SampleText";
 
     // Cognito pool ID. For this app, pool needs to be unauthenticated pool with
     // Amazon Polly permissions.
@@ -76,54 +74,21 @@ public class MainActivity extends Activity{
 
     private AmazonPollyPresigningClient client;
     private List<Voice> voices;
-    private Spinner voicesSpinner;
-    private int selectedPosition;
     MediaPlayer mediaPlayer;
 
-    private class SpinnerVoiceAdapter extends BaseAdapter {
-        
-		private LayoutInflater inflater;
-        private List<Voice> voices;
+    //Content Resolver
+    final Uri CONTENT_URI = Uri.parse("content://com.amazonaws.demo.polly.WordProvider/wordlist");
 
-        SpinnerVoiceAdapter(Context ctx, List<Voice> voices) {
-            this.inflater = LayoutInflater.from(ctx);
-            this.voices = voices;
-        }
+    ContentResolver resolver;
 
-        @Override
-        public int getCount() {
-            return voices.size();
-        }
+    private int k = 0;
 
-        @Override
-        public Object getItem(int position) {
-            return voices.get(position);
-        }
+    public String[] words = {""};
 
-        @Override
-        public long getItemId(int position) {
-            return 0;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) {
-                convertView = inflater.inflate(R.layout.voice_spinner_row, parent, false);
-            }
-            Voice voice = voices.get(position);
-
-            TextView nameTextView = (TextView) convertView.findViewById(R.id.voiceName);
-            nameTextView.setText(voice.getName());
-
-            TextView languageCodeTextView = (TextView) convertView.findViewById(R.id.voiceLanguageCode);
-            languageCodeTextView.setText(voice.getLanguageName() +
-                    " (" + voice.getLanguageCode() + ")");
-
-            return convertView;
-        }
-    }
+    ImageButton play, prev, next;
 
     private class GetPollyVoices extends AsyncTask<Void, Void, Void> {
+
         @Override
         protected Void doInBackground(Void... params) {
             if (voices != null) {
@@ -148,6 +113,28 @@ public class MainActivity extends Activity{
             // Log a message with a list of available TTS voices.
             Log.i(TAG, "Available Polly voices: " + voices);
 
+            prev.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (k > 0) {
+                        setupPlayButton(words[--k]);
+                    } else {
+                        setupPlayButton(words[0]);
+                    }
+                }
+            });
+
+            next.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (k < words.length - 1) {
+                        setupPlayButton(words[++k]);
+                    } else {
+                        setupPlayButton(words[words.length - 1]);
+                    }
+                }
+            });
+
             return null;
         }
 
@@ -156,271 +143,166 @@ public class MainActivity extends Activity{
             if (voices == null) {
                 return;
             }
-
-            voicesSpinner.setAdapter(new SpinnerVoiceAdapter(MainActivity.this, voices));
-
- //         findViewById(R.id.voicesProgressBar).setVisibility(View.INVISIBLE);
-            
-			voicesSpinner.setVisibility(View.VISIBLE);
-
-            voicesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    if (view == null) {
-                        return;
-                    }
-        }
-
-                @Override
-                public void onNothingSelected(AdapterView<?> parent) {
-                }
-            });
-
-            // Restore previously selected voice (e.g. after screen orientation change).
-            voicesSpinner.setSelection(selectedPosition);
         }
     }
 
-    @Override
-    protected void onPostCreate(Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
+        public String[] getData(String level) {
 
-        setupVoicesSpinner();
-    }
+            String[] projection = new String[]{"id", "word"};
 
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+            Cursor cursor = resolver.query(CONTENT_URI, projection, "level = ?", new String[]{level}, null);
 
-        //Get the level from the extras sent by ChooseLevel
-        Bundle bundle = getIntent().getExtras();
-        String level = bundle.getString("key");
+            String[] words = {""};
 
-        initPollyClient();
-        setupNewMediaPlayer();
-		//TODO setupPlayButton();
+            int i = 0;
 
-        //Connect to Database
-        /*DataBaseAccess databaseAccess = DataBaseAccess.getInstance(this);
-        databaseAccess.open();
+            if (cursor.moveToFirst()) {
 
-        //Retrieve the set of words from the table based on the level
-        List<String> words = databaseAccess.getData(level);
+                do {
+                    words[i] = cursor.getString(cursor.getColumnIndex("word"));
 
-        //Close the connection
-        databaseAccess.close();*/
+                    if (cursor.moveToNext())
+                        ++i;
 
-		Uri CONTENT_URI=Uri.parse("content://com.amazonaws.demo.polly.spellit.wordlist");
-
-        List<String> words= new ArrayList<String>();
-		
-		try {
-            Cursor cursor = getContentResolver().query(CONTENT_URI, word , level, null, null, null);
-
-            int j=0;
-            if (cursor != null) {
-
-                while (cursor.moveToNext()) {
-                    words.set(j++, cursor.getString(0));
-                    //words.append(cursor.getInt(0) + "\t" + cursor.getString(1) + "\t " + cursor.getString(2) + "\n");
-                }
+                } while (cursor.moveToNext());
             }
             cursor.close();
-
+            return words;
         }
-        catch(Exception e)
-        {
-            Toast.makeText(getApplicationContext(),e.getMessage().toString(),Toast.LENGTH_SHORT).show();
-        }		
 
-        //int k=0;
-        for(int k=0;k<words.size();k++) {
+        @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.activity_main);
 
-            setupPlayButton(words.get(k));
+            //Get the level from the extras sent by ChooseLevel
+            Bundle bundle = getIntent().getExtras();
+            String level = bundle.getString("key");
 
-            /*EditText ed = (EditText) findViewById(R.id.check_word);
+            initPollyClient();
+            setupNewMediaPlayer();
 
-            ed.addTextChangedListener(new TextWatcher() {
+            resolver = getContentResolver();
 
+            words = getData(level);
+
+            play=(ImageButton)findViewById(R.id.playButton);
+            prev=(ImageButton)findViewById(R.id.prevButton);
+            next=(ImageButton)findViewById(R.id.nextButton);
+
+
+            play.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-
-                }
-
-                @Override
-                public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-
-                }
-
-                @Override
-                public void afterTextChanged(Editable editable) {
-
-                    String cword = ed.getText().toString();
-
-                    if (cword.equals(null)) {
-                        setupPlayButton("Type the word");
-                        Toast.makeText(getApplicationContext(), "Type the word", Toast.LENGTH_SHORT);
-                    } else if (cword.equalsIgnoreCase(words.get(0))) {
-                        setupPlayButton("Good Job!");
-                        ed.setText("");
-                        Toast.makeText(getApplicationContext(), "Good Job!", Toast.LENGTH_LONG).show();
-                    } else {
-                        setupPlayButton("Oops! Try Again!");
-                        ed.setText("");
-                        Toast.makeText(getApplicationContext(), "Try again!", Toast.LENGTH_SHORT).show();
-                    }
+                public void onClick(View v) {
 
                 }
             });
 
-        ImageButton play=(ImageButton)findViewById(R.id.playButton);
-            play.setOnClickListener(new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
-                        setupPlayButton(words.get(0));
-
-                                            ImageButton prev = (ImageButton) findViewById(R.id.prevButton);
-                                            ImageButton next = (ImageButton) findViewById(R.id.nextButton);
-
-                                            prev.setOnClickListener(new View.OnClickListener() {
-                                                @Override
-                                                public void onClick(View v) {
-                                                    Toast.makeText(getApplicationContext(), "Next Word", Toast.LENGTH_SHORT).show();
-                                                    //k--;
-                                                }
-                                            });
-
-                                            next.setOnClickListener(new View.OnClickListener() {
-                                                @Override
-                                                public void onClick(View v) {
-                                                    Toast.makeText(getApplicationContext(), "Next Word", Toast.LENGTH_SHORT).show();
-                                                    //   k++;
-                                                }
-                                            });
-
-                                        }
-                                    });
-        }//close for
-*/
-        //
-        //next.setOnClickListener((View.OnClickListener) this);
-
-        //Button btn = (Button) findViewById(R.id.check_btn);
-        //btn.setVisibility(View.INVISIBLE);
 
 
-        //EditText ed=(EditText)findViewById(R.id.check_word);
-        //ed.setVisibility(View.INVISIBLE);
-    }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
+            EditText ed = (EditText) findViewById(R.id.check_word);
 
-        outState.putInt(KEY_SELECTED_VOICE_POSITION, voicesSpinner.getSelectedItemPosition());
-        outState.putSerializable(KEY_VOICES, (Serializable) voices);
-    //  outState.putString(KEY_SAMPLE_TEXT, sampleTextEditText.getText().toString());
+            String cword = ed.getText().toString();
 
-        super.onSaveInstanceState(outState);
-    }
+            ed.addTextChangedListener(new TextWatcher() {
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
+                    }
 
-        selectedPosition = savedInstanceState.getInt(KEY_SELECTED_VOICE_POSITION);
-        voices = (List<Voice>) savedInstanceState.getSerializable(KEY_VOICES);
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
 
-        //String sampleText = savedInstanceState.getString(KEY_SAMPLE_TEXT);
-        //if (sampleText.isEmpty()) {
-        //    defaultTextButton.setVisibility(View.GONE);
-        //} else {
-        //    sampleTextEditText.setText(sampleText);
-        //    defaultTextButton.setVisibility(View.VISIBLE);
-        //}
-    }
+                    }
 
-    void initPollyClient() {
-        // Initialize the Amazon Cognito credentials provider.
-        credentialsProvider = new CognitoCachingCredentialsProvider(
-                getApplicationContext(),
-                COGNITO_POOL_ID,
-                MY_REGION
-        );
-
-        // Create a client that supports generation of presigned URLs.
-        client = new AmazonPollyPresigningClient(credentialsProvider);
-    }
-
-    void setupNewMediaPlayer() {
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                mp.release();
-                setupNewMediaPlayer();
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                        if (cword.equals(null)) {
+                            setupPlayButton("Type the word");
+                            Toast.makeText(getApplicationContext(), "Type the word", Toast.LENGTH_SHORT);
+                        } else if (cword.equalsIgnoreCase(words[k])) {
+                            setupPlayButton("Good Job!");
+                            ed.setText("");
+                            Toast.makeText(getApplicationContext(), "Good Job!", Toast.LENGTH_LONG).show();
+                        } else {
+                            setupPlayButton("Oops! Try Again!");
+                            ed.setText("");
+                            Toast.makeText(getApplicationContext(), "Try again!", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
             }
-        });
-        mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-            @Override
-            public void onPrepared(MediaPlayer mp) {
-                mp.start();
-                //playButton.setEnabled(true);
-            }
-        });
-        mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-            @Override
-            public boolean onError(MediaPlayer mp, int what, int extra) {
 
-                return false;
-            }
-        });
-    }
+        void initPollyClient() {
+            // Initialize the Amazon Cognito credentials provider.
+            credentialsProvider = new CognitoCachingCredentialsProvider(
+                    getApplicationContext(),
+                    COGNITO_POOL_ID,
+                    MY_REGION
+            );
 
-    void setupVoicesSpinner() {
-        voicesSpinner = (Spinner) findViewById(R.id.voicesSpinner);
-       // findViewById(R.id.voicesProgressBar).setVisibility(View.VISIBLE);
+            // Create a client that supports generation of presigned URLs.
+            client = new AmazonPollyPresigningClient(credentialsProvider);
+        }
 
-        // Asynchronously get available Polly voices.
-
-        new GetPollyVoices().execute();
-    }
-
-    void setupPlayButton(String word) {
-
-                Voice selectedVoice = (Voice) voicesSpinner.getSelectedItem();
-
-                // Create speech synthesis request.
-                SynthesizeSpeechPresignRequest synthesizeSpeechPresignRequest =
-                        new SynthesizeSpeechPresignRequest()
-                        // Set text to synthesize.
-                        .withText(word)
-                        // Set voice selected by the user.
-                        .withVoiceId(selectedVoice.getId())
-                        // Set format to MP3.
-                        .withOutputFormat(OutputFormat.Mp3);
-
-                // Get the presigned URL for synthesized speech audio stream.
-                URL presignedSynthesizeSpeechUrl =
-                        client.getPresignedSynthesizeSpeechUrl(synthesizeSpeechPresignRequest);
-
-                Log.i(TAG, "Playing speech from presigned URL: " + presignedSynthesizeSpeechUrl);
-
-                // Create a media player to play the synthesized audio stream.
-                if (mediaPlayer.isPlaying()) {
+        void setupNewMediaPlayer() {
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    mp.release();
                     setupNewMediaPlayer();
                 }
-                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-
-                try {
-                    // Set media player's data source to previously obtained URL.
-                    mediaPlayer.setDataSource(presignedSynthesizeSpeechUrl.toString());
-                } catch (IOException e) {
-                    Log.e(TAG, "Unable to set data source for the media player! " + e.getMessage());
+            });
+            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    mp.start();
                 }
+            });
+            mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+                @Override
+                public boolean onError(MediaPlayer mp, int what, int extra) {
 
-                // Start the playback asynchronously (since the data source is a network stream).
-                mediaPlayer.prepareAsync();
+                    return false;
+                }
+            });
+        }
+
+        void setupPlayButton(String word) {
+
+            // Create speech synthesis request.
+            SynthesizeSpeechPresignRequest synthesizeSpeechPresignRequest =
+                    new SynthesizeSpeechPresignRequest()
+                            // Set text to synthesize.
+                            .withText(word)
+                            // Set voice to Indian English Aditi.
+                            .withVoiceId("Aditi")
+                            // Set format to MP3.
+                            .withOutputFormat(OutputFormat.Mp3);
+
+            // Get the presigned URL for synthesized speech audio stream.
+            URL presignedSynthesizeSpeechUrl =
+                    client.getPresignedSynthesizeSpeechUrl(synthesizeSpeechPresignRequest);
+
+            Log.i(TAG, "Playing speech from presigned URL: " + presignedSynthesizeSpeechUrl);
+
+            // Create a media player to play the synthesized audio stream.
+            if (mediaPlayer.isPlaying()) {
+                setupNewMediaPlayer();
             }
-}
+            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+            try {
+                // Set media player's data source to previously obtained URL.
+                mediaPlayer.setDataSource(presignedSynthesizeSpeechUrl.toString());
+            } catch (IOException e) {
+                Log.e(TAG, "Unable to set data source for the media player! " + e.getMessage());
+            }
+
+            // Start the playback asynchronously (since the data source is a network stream).
+            mediaPlayer.prepareAsync();
+        }
+    }
