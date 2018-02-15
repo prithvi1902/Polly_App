@@ -159,22 +159,18 @@ public class MainActivity extends Activity {
 
             Cursor cursor = resolver.query(CONTENT_URI, projection, "level = ?", new String[]{level}, null);
 
-            String[] words = {""};
+            ArrayList<String> words = new ArrayList<String>();
 
             int i = 0;
 
-            if (cursor.moveToFirst()) {
+            cursor.moveToFirst();
 
-                do {
-                    words[i] = cursor.getString(cursor.getColumnIndex("word"));
-
-                    if (cursor.moveToNext())
-                        ++i;
-
-                } while (cursor.moveToNext());
+            while(!cursor.isAfterLast()) {
+                words.add(cursor.getString(cursor.getColumnIndex("word")));
+                cursor.moveToNext();
             }
             cursor.close();
-            return words;
+            return words.toArray(new String[words.size()]);
         }
 
         @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
@@ -197,6 +193,9 @@ public class MainActivity extends Activity {
             play=(ImageButton)findViewById(R.id.playButton);
             prev=(ImageButton)findViewById(R.id.prevButton);
             next=(ImageButton)findViewById(R.id.nextButton);
+
+            GetPollyVoices gt=new GetPollyVoices();
+            gt.execute();
 
             EditText ed = (EditText) findViewById(R.id.check_word);
 

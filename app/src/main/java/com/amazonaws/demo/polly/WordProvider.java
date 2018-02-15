@@ -17,7 +17,6 @@ public class WordProvider extends ContentProvider {
     public WordProvider() {
     }
 
-
     public static final String AUTHORITY="com.amazonaws.demo.polly.WordProvider";
 
     public static final String PATH_TOGET_WORDS ="wordlist";//directory
@@ -28,6 +27,8 @@ public class WordProvider extends ContentProvider {
 
     SQLiteDatabase sqldb;
 
+    DataBaseAccess dba;
+
     private static HashMap<String,String> words;
 
     private static final UriMatcher MATCHER=new UriMatcher(UriMatcher.NO_MATCH);
@@ -35,14 +36,6 @@ public class WordProvider extends ContentProvider {
     static {
         MATCHER.addURI(AUTHORITY, PATH_TOGET_WORDS, TOGET_WORDS);
     }
-
-//    public static final String MIME_TYPE_1 = ContentResolver.CURSOR_DIR_BASE_TYPE+"/"+ "vnd.com.codetutore.todos";
-  //  public static final String MIME_TYPE_2 = ContentResolver.CURSOR_DIR_BASE_TYPE+"/"+ "vnd.com.codetutore.todos.place";
-    //public static final String MIME_TYPE_3 = ContentResolver.CURSOR_ITEM_BASE_TYPE+"/"+ "vnd.com.codetutore.todocount";
-
-    //   private ToDoListDBAdapter toDoListDBAdapter;
-
-    DataBaseAccess dba;
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
