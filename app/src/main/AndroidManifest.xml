@@ -11,8 +11,7 @@
         android:supportsRtl="true">
 
         <activity android:name=".MainActivity"
-            android:configChanges="orientation"
-            android:windowSoftInputMode="adjustPan|adjustResize" >
+            android:configChanges="orientation">
 
            <!-- <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

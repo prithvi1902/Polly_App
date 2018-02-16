@@ -1,6 +1,8 @@
 package com.amazonaws.demo.polly;
 
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+
 import com.readystatesoftware.sqliteasset.SQLiteAssetHelper;
 
 public class DBHelp extends SQLiteAssetHelper {

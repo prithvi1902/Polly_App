@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -31,8 +32,10 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
@@ -81,7 +84,7 @@ public class MainActivity extends Activity {
 
     ContentResolver resolver;
 
-    private int k = 0;
+    private static int k = 0;
 
     public String[] words = {""};
 
@@ -117,7 +120,8 @@ public class MainActivity extends Activity {
                 @Override
                 public void onClick(View v) {
                     if (k > 0) {
-                        setupPlayButton(words[--k]);
+                        k--;
+                        setupPlayButton(words[k]);
                     } else {
                         setupPlayButton(words[0]);
                     }
@@ -134,8 +138,9 @@ public class MainActivity extends Activity {
             next.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (k < words.length - 1) {
-                        setupPlayButton(words[++k]);
+                    if (k < words.length-1 ) {
+                        k++;
+                        setupPlayButton(words[k]);
                     } else {
                         setupPlayButton(words[words.length - 1]);
                     }
@@ -143,13 +148,6 @@ public class MainActivity extends Activity {
             });
 
             return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            if (voices == null) {
-                return;
-            }
         }
     }
 
@@ -159,7 +157,7 @@ public class MainActivity extends Activity {
 
             Cursor cursor = resolver.query(CONTENT_URI, projection, "level = ?", new String[]{level}, null);
 
-            ArrayList<String> words = new ArrayList<String>();
+            ArrayList<String> words = new ArrayList<>();
 
             int i = 0;
 
@@ -177,7 +175,7 @@ public class MainActivity extends Activity {
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
-            setContentView(R.layout.activity_main);
+          setContentView(R.layout.activity_main);
 
             //Get the level from the extras sent by ChooseLevel
             Bundle bundle = getIntent().getExtras();
@@ -198,37 +196,39 @@ public class MainActivity extends Activity {
             gt.execute();
 
             EditText ed = (EditText) findViewById(R.id.check_word);
+            ImageButton submit=(ImageButton)findViewById(R.id.submit);
 
-            String cword = ed.getText().toString();
+            submit.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
 
-            ed.addTextChangedListener(new TextWatcher() {
-                    @Override
-                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    String cword = ed.getText().toString().trim();
 
+                    if (cword.equals(null)) {
+                        setupPlayButton("Type the word");
+                        Toast.makeText(getApplicationContext(), "Type the word", Toast.LENGTH_SHORT).show();
+                    } else if (cword.equalsIgnoreCase(words[k])) {
+                        setupPlayButton("Good Job!");
+                        ed.setText("");
+                        Toast.makeText(getApplicationContext(), "Good Job!", Toast.LENGTH_LONG).show();
+                    } else if(!(cword.equalsIgnoreCase(words[k]))){
+                        setupPlayButton("Oops! Try Again!");
+                        ed.setText("");
+                        Toast.makeText(getApplicationContext(), "Try again!", Toast.LENGTH_SHORT).show();
                     }
 
-                    @Override
-                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+            });
 
-                    }
-
-                    @Override
-                    public void afterTextChanged(Editable s) {
-                        if (cword.equals(null)) {
-                            setupPlayButton("Type the word");
-                            Toast.makeText(getApplicationContext(), "Type the word", Toast.LENGTH_SHORT);
-                        } else if (cword.equalsIgnoreCase(words[k])) {
-                            setupPlayButton("Good Job!");
-                            ed.setText("");
-                            Toast.makeText(getApplicationContext(), "Good Job!", Toast.LENGTH_LONG).show();
-                        } else {
-                            setupPlayButton("Oops! Try Again!");
-                            ed.setText("");
-                            Toast.makeText(getApplicationContext(), "Try again!", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
-            }
+            ImageButton home=(ImageButton)findViewById(R.id.home);
+            home.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent k=new Intent(MainActivity.this,ChooseLevel.class);
+                    startActivity(k);
+                }
+            });
+        }
 
         void initPollyClient() {
             // Initialize the Amazon Cognito credentials provider.

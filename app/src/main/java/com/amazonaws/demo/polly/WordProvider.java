@@ -8,7 +8,9 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.util.Log;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +62,11 @@ public class WordProvider extends ContentProvider {
     public boolean onCreate() {
         // TODO: Implement this to initialize your content provider on startup.
         dba=new DataBaseAccess(getContext());
-        sqldb=dba.open();
+        try {
+            sqldb=dba.open();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         if(sqldb.isOpen() )
             return true;
         else
