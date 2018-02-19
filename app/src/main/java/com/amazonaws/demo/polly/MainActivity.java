@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
     MediaPlayer mediaPlayer;
 
     //Content Resolver
-    final Uri CONTENT_URI = Uri.parse("content://com.amazonaws.demo.polly.WordProvider/wordlist");
+    final Uri CONTENT_URI = Uri.parse("content://src/main/assets/databases/");
 
     ContentResolver resolver;
 
