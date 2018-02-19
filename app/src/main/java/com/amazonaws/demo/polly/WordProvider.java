@@ -12,15 +12,14 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.util.Log;
 
+import com.readystatesoftware.sqliteasset.SQLiteAssetHelper;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class WordProvider extends ContentProvider {
-    public WordProvider() {
-
-    }
 
     //public static final String AUTHORITY="com.amazonaws.demo.polly.WordProvider";
 
@@ -47,11 +46,11 @@ public class WordProvider extends ContentProvider {
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
 
         SQLiteOpenHelper oHelper=new DataBaseHelper(getContext()); //Inner Class declared at the bottom
-        sqldb=oHelper.getReadableDatabase();
+        sqldb=oHelper.getWritableDatabase();
 
         SQLiteQueryBuilder qb=new SQLiteQueryBuilder();
 
-        //qb.setTables("wordlist");
+        qb.setTables("wordlist");
 
         //   switch (MATCHER.match(uri)) {
         //     case uricode:
@@ -65,7 +64,7 @@ public class WordProvider extends ContentProvider {
 
         Cursor cursor=qb.query(sqldb,projection,selection,selectionArgs,null,null,sortOrder );
 
-        cursor.setNotificationUri(getContext().getContentResolver(),uri);
+       // cursor.setNotificationUri(getContext().getContentResolver(),uri);
 
         return cursor;
     }
@@ -108,20 +107,10 @@ public class WordProvider extends ContentProvider {
         return 1;
     }
 
-    private static class DataBaseHelper extends SQLiteOpenHelper{
+    private static class DataBaseHelper extends SQLiteAssetHelper{
 
         DataBaseHelper(Context context){
             super(context,DB_Name,null,1);
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-
-        }
-
-        @Override
-        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
         }
     }
 }
