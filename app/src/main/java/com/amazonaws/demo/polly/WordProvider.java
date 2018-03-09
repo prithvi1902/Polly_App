@@ -45,7 +45,7 @@ public class WordProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
 
-        SQLiteOpenHelper oHelper=new DataBaseHelper(getContext()); //Inner Class declared at the bottom
+        DataBaseHelper oHelper=new DataBaseHelper(getContext()); //Inner Class declared at the bottom
         sqldb=oHelper.getWritableDatabase();
 
         SQLiteQueryBuilder qb=new SQLiteQueryBuilder();

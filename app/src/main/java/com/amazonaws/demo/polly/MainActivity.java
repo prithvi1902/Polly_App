@@ -42,12 +42,15 @@ import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.SimpleCursorAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.http.HttpClient;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.polly.AmazonPollyPresigningClient;
 import com.amazonaws.services.polly.model.DescribeVoicesRequest;
@@ -56,9 +59,24 @@ import com.amazonaws.services.polly.model.OutputFormat;
 import com.amazonaws.services.polly.model.SynthesizeSpeechPresignRequest;
 import com.amazonaws.services.polly.model.Voice;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.BasicResponseHandler;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,11 +96,6 @@ public class MainActivity extends Activity {
     private AmazonPollyPresigningClient client;
     private List<Voice> voices;
     MediaPlayer mediaPlayer;
-
-    //Content Resolver
-    final Uri CONTENT_URI = Uri.parse("content://com.amazonaws.demo.polly.WordProvider");
-
-    ContentResolver resolver;
 
     private static int k = 0;
 
@@ -149,33 +162,39 @@ public class MainActivity extends Activity {
 
             return null;
         }
+
+
+        public String[] getData(String level) throws IOException{
+
+            //StringBuilder sb = new StringBuilder();
+            String[] words = new String[0];
+            URL url = new URL("http://ec2-13-126-241-54.ap-south-1.compute.amazonaws.com/test.php?name='"+level+"'");
+            HttpURLConnection con=(HttpURLConnection)url.openConnection();
+
+            try {
+                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+
+                String inputLine;
+
+                inputLine = in.readLine();
+                    words= inputLine.split(",");
+                    //sb.append(inputLine);
+
+            } finally{
+                return words;
+            }
+
+        }
     }
 
-        public String[] getData(String level) {
 
-            String[] projection = new String[]{"id", "word"};
-
-            Cursor cursor = resolver.query(CONTENT_URI, projection, "level = ?", new String[]{level}, null);
-
-            ArrayList<String> words = new ArrayList<>();
-
-            int i = 0;
-
-            cursor.moveToFirst();
-
-            while(!cursor.isAfterLast()) {
-                words.add(cursor.getString(cursor.getColumnIndex("word")));
-                cursor.moveToNext();
-            }
-            cursor.close();
-            return words.toArray(new String[words.size()]);
-        }
-
-        @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+       @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
           setContentView(R.layout.activity_main);
+
+          GetPollyVoices gt=new GetPollyVoices();
 
             //Get the level from the extras sent by ChooseLevel
             Bundle bundle = getIntent().getExtras();
@@ -183,16 +202,18 @@ public class MainActivity extends Activity {
 
             initPollyClient();
             setupNewMediaPlayer();
+            try {
+                words = gt.getData(level);
+                }
+            catch(IOException e)
+            {
 
-            resolver = getContentResolver();
-
-            words = getData(level);
+            }
 
             play=(ImageButton)findViewById(R.id.playButton);
             prev=(ImageButton)findViewById(R.id.prevButton);
             next=(ImageButton)findViewById(R.id.nextButton);
 
-            GetPollyVoices gt=new GetPollyVoices();
             gt.execute();
 
             EditText ed = (EditText) findViewById(R.id.check_word);
@@ -226,7 +247,7 @@ public class MainActivity extends Activity {
                 public void onClick(View v) {
                     Intent k=new Intent(MainActivity.this,ChooseLevel.class);
                     startActivity(k);
-                }
+                    }
             });
         }
 

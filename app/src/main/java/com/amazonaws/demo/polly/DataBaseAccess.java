@@ -1,56 +1,33 @@
 package com.amazonaws.demo.polly;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteQueryBuilder;
 
-import java.io.IOException;
+import com.readystatesoftware.sqliteasset.SQLiteAssetHelper;
 
-public class DataBaseAccess {
-    private SQLiteOpenHelper openHelper;
-    private SQLiteDatabase database;
-    private static DataBaseAccess instance;
-    static Context ct;
+public class DataBaseAccess extends SQLiteAssetHelper {
 
-    /**
-     * Private constructor to aboid object creation from outside classes.
-     *
-     * @param context
-     */
-    protected DataBaseAccess(Context context) {
-        this.openHelper = new DBHelp(context);
+    private static final String DATABASE_NAME = "spellit.db";
+    private static final int DATABASE_VERSION = 1;
+
+    public DataBaseAccess(Context context) {
+        super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
-    /**
-     * Return a singleton instance of DatabaseAccess.
-     *
-     * @param context the Context
-     * @return the instance of DabaseAccess
-     */
-    public static DataBaseAccess getInstance(Context context) {
-        if (instance == null) {
-            instance = new DataBaseAccess(context);
-            ct=context;
-        }
-        return instance;
-    }
+    public Cursor getData(String level) {
 
-    /**
-     * Open the database connection.
-     */
-    public SQLiteDatabase open() throws IOException {
-        //return ct.getAssets().open("spellit.db");
+        SQLiteDatabase db = getReadableDatabase();
+        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
 
-        return openHelper.getWritableDatabase();
-         //return this.database;
-    }
+        String[] sqlSelect = {"word"};
+        String sqlTables = "wordlist";
 
-    /**
-     * Close the database connection.
-     */
-    public void close() {
-        if (database != null) {
-            this.database.close();
-        }
+        qb.setTables(sqlTables);
+        Cursor c = qb.query(db, sqlSelect, "level=?", new String[] {level} ,null, null, null);
+
+        return c;
+
     }
 }
