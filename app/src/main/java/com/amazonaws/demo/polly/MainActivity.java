@@ -79,8 +79,9 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import android.util.Log;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements View.OnClickListener {
 
     private static final String TAG = "PollyDemo";
 
@@ -97,11 +98,11 @@ public class MainActivity extends Activity {
     private List<Voice> voices;
     MediaPlayer mediaPlayer;
 
-    private static int k = 0;
+    private static int k = 0;   //global variable to manipulate the words array
 
-    public String[] words = {""};
+    public String[] words = {""};   //array to store the words retrieved from the server
 
-    ImageButton play, prev, next;
+    ImageButton play, prev, next;   //listen to their clicks from the second activity
 
     private class GetPollyVoices extends AsyncTask<Void, Void, Void> {
 
@@ -129,72 +130,82 @@ public class MainActivity extends Activity {
             // Log a message with a list of available TTS voices.
             Log.i(TAG, "Available Polly voices: " + voices);
 
-            prev.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (k > 0) {
-                        k--;
-                        setupPlayButton(words[k]);
-                    } else {
-                        setupPlayButton(words[0]);
-                    }
-                }
-            });
-
-            play.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    setupPlayButton(words[k]);
-                }
-            });
-
-            next.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (k < words.length-1 ) {
-                        k++;
-                        setupPlayButton(words[k]);
-                    } else {
-                        setupPlayButton(words[words.length - 1]);
-                    }
-                }
-            });
-
             return null;
         }
+    }
 
+    //Asynchronous class to fetch words from the server
+    public class Fetch extends AsyncTask<String, Void, Void>{
 
-        public String[] getData(String level) throws IOException{
-
-            //StringBuilder sb = new StringBuilder();
-            String[] words = new String[0];
-            URL url = new URL("http://ec2-13-126-241-54.ap-south-1.compute.amazonaws.com/test.php?name='"+level+"'");
-            HttpURLConnection con=(HttpURLConnection)url.openConnection();
+        @Override
+        protected Void doInBackground(String... strings) {
 
             try {
+
+                URL url = new URL("http://ec2-13-126-241-54.ap-south-1.compute.amazonaws.com/test.php?name="+strings[0]);
+
+                HttpURLConnection con=(HttpURLConnection)url.openConnection();
+
                 BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
 
                 String inputLine;
 
                 inputLine = in.readLine();
-                    words= inputLine.split(",");
-                    //sb.append(inputLine);
+                words= inputLine.split(",");
 
             } finally{
-                return words;
+                return null;
             }
-
         }
     }
 
+    public class Play extends AsyncTask<View, Void, Void>{
 
-       @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+        @Override
+        protected Void doInBackground(View... views) {
+
+            if(views[0].getId() == R.id.prevButton) {
+                if (k > 0) {
+                    k--;
+                    setupPlayButton(words[k]);
+                } else if(k==words.length-1) {
+                    setupPlayButton("You have completed this level! Change the level!");
+                } else{
+                    setupPlayButton(words[0]);
+                }
+            }
+            else if(views[0].getId()==R.id.playButton) {
+                setupPlayButton(words[k]);
+            }else if(views[0].getId()==R.id.nextButton) {
+                if (k < words.length - 1) {
+                    k++;
+                    setupPlayButton(words[k]);
+                } else if(k==words.length-1) {
+                    setupPlayButton("You have completed this level! Change the level!");
+                } else{
+                    setupPlayButton(words[words.length - 1]);
+                }
+            }
+            return null;
+        }
+    }
+
+    //Method to handle the onClickListener for the ImageButtons
+    @Override
+    public void onClick(View view) {
+        Play p=new Play();
+        p.execute(view);
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
           setContentView(R.layout.activity_main);
 
-          GetPollyVoices gt=new GetPollyVoices();
+            //Get the available Polly voices
+            GetPollyVoices gt=new GetPollyVoices();
+            gt.execute();
 
             //Get the level from the extras sent by ChooseLevel
             Bundle bundle = getIntent().getExtras();
@@ -202,23 +213,26 @@ public class MainActivity extends Activity {
 
             initPollyClient();
             setupNewMediaPlayer();
-            try {
-                words = gt.getData(level);
-                }
-            catch(IOException e)
-            {
 
-            }
+            //Fetch the words from the server
+            Fetch f=new Fetch();
+            f.execute(level);
 
+            //Create objects for the ImageButtons
             play=(ImageButton)findViewById(R.id.playButton);
             prev=(ImageButton)findViewById(R.id.prevButton);
             next=(ImageButton)findViewById(R.id.nextButton);
 
-            gt.execute();
+            //set OnClickListeners to them
+            play.setOnClickListener(this);
+            prev.setOnClickListener(this);
+            next.setOnClickListener(this);
+
 
             EditText ed = (EditText) findViewById(R.id.check_word);
             ImageButton submit=(ImageButton)findViewById(R.id.submit);
 
+            //Check for the word entered; if correct or wrong
             submit.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
