@@ -11,19 +11,19 @@
 # Number of Activities?
  There are a total of  activities:
   1. Splash Activity 
-      a. mainly used to demonstrate the concept of Splash and creating a thread!
+      1.1 mainly used to demonstrate the concept of Splash and creating a thread!
   2. Choose Level
-      a. The kid will have to choose any one of the level (easy/medium/hard)
-      b. The level is then passed to the server where the words are retrived from the database
+      2.1 The kid will have to choose any one of the level (easy/medium/hard)
+      2.2 The level is then passed to the server where the words are retrived from the database
   3. MainActivity
-      a. OnCreation of this activity
-          1. The Polly is initialized
-          2. The media Player is set
-      b. Based on the button clicked, the listeners will act accordingly and make a call to Polly using the synthesizeSpeech() method which takes in 3 parameters: 
-          1. Voice Id (Aditi-Indian English voice)
-          2. Word (word sent as an argument)
-          3. Format (mp3 format)
-      c. The words are retrieved from the server as a CSV (Comma Separated Values)
+      3.1 OnCreation of this activity
+          3.1.1 The Polly is initialized
+          3.1.2 The media Player is set
+      3.2 Based on the button clicked, the listeners will act accordingly and make a call to Polly using the synthesizeSpeech() method which takes in 3 parameters: 
+          3.2.1 Voice Id (Aditi-Indian English voice)
+          3.2.2 Word (word sent as an argument)
+          3.2.3 Format (mp3 format)
+      3.3. The words are retrieved from the server as a CSV (Comma Separated Values)
 
 # Amazon Web Services used
   1. Amazon Polly
@@ -50,6 +50,6 @@
       The ultimate solution was the IMAGE SIZE used for the app as the background image, various buttons etc.
       The image sizes, if is more than few MBs(mine was 20 to 50 MB), reduces the speed.
       Becasue the UI thread will take time to load such a big file every time you move from one frame to another or you type a word from the keypad and close the keypad.
-      I then resized the images to the standard images sizes to use in an app (I browsed online to check for the sizes)
+      I then resized the images to the standard image sizes to use in an app (I browsed online to check for the sizes)
       
 
