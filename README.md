@@ -1,5 +1,5 @@
 # Polly_App
-  Polly is an app which playa words based on the difficulty level (easy/medium/hard) chosen.
+  Polly is an app which plays words based on the difficulty level (easy/medium/hard) chosen.
   The kid will have to spell the word by writing on the space provided.
   The Polly will then tell if the word spelled is right or wrong.
 
