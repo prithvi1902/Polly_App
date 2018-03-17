@@ -10,19 +10,20 @@
   
 # Number of Activities?
  There are a total of  activities:
-  1. Splash Activity
-      -mainly used to demonstrate the concept pf Splash and creating a thread!
+  1. Splash Activity 
+      a. mainly used to demonstrate the concept of Splash and creating a thread!
   2. Choose Level
-      -The kid will have to choose any one of the level (easy/medium/hard)
-      -The level is then passed to the server where the words are retrived from the database
+      a. The kid will have to choose any one of the level (easy/medium/hard)
+      b. The level is then passed to the server where the words are retrived from the database
   3. MainActivity
-      -OnCreation of this activity
-        The Polly is initialized
-        The media Player is set
-        Based on the button clicked, the listeners will act accordingly and make a call to Polly using the synthesizeSpeech() method which takes in 3 parameters: 
-          Voice Id (Aditi-Indian English voice)
-          Word (word sent as an argument)
-          Format (mp3 format)
+      a. OnCreation of this activity
+          1. The Polly is initialized
+          2. The media Player is set
+      b. Based on the button clicked, the listeners will act accordingly and make a call to Polly using the synthesizeSpeech() method which takes in 3 parameters: 
+          1. Voice Id (Aditi-Indian English voice)
+          2. Word (word sent as an argument)
+          3. Format (mp3 format)
+      c. The words are retrieved from the server as a CSV (Comma Separated Values)
 
 # Amazon Web Services used
   1. Amazon Polly
