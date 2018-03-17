@@ -3,7 +3,6 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 24
     buildToolsVersion "26.0.2"
-    useLibrary 'org.apache.http.legacy'
     defaultConfig {
         applicationId "com.amazonaws.demo.polly"
         minSdkVersion 10
@@ -23,24 +22,17 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    sourceSets { main { assets.srcDirs = ['src/main/assets', 'src/main/assets/databases'] } }
 }
 
 dependencies {
-    compile 'com.readystatesoftware.sqliteasset:sqliteassethelper:+'
-    compile 'org.apache.httpcomponents:httpcore:4.4.1'
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:24.2.1'
-    compile 'com.android.support:design:24.2.1'
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    compile 'com.amazonaws:aws-android-sdk-polly:2.6.+'
+    compile'com.amazonaws:aws-android-sdk-polly:2.6.+'
     testCompile 'junit:junit:4.12'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
 }
 
-repositories {
+repositories{
     mavenCentral()
 }

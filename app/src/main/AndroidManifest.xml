@@ -1,31 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.amazonaws.demo.polly">
-
-    <uses-permission android:name="android.permission.INTERNET" />
+    package="com.amazonaws.demo.polly" >
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/ic_launcher1"
         android:label="@string/app_name"
         android:supportsRtl="true">
-
-        <activity android:name=".MainActivity"
-            android:configChanges="orientation">
-
-           <!-- <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>-->
-        </activity>
-
-        <activity android:name=".ChooseLevel">
-        <!--    <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>-->
-        </activity>
 
         <activity
             android:name=".Splash">
@@ -35,14 +16,15 @@
             </intent-filter>
         </activity>
 
-        <provider
-            android:name=".WordProvider"
-            android:authorities="com.amazonaws.demo.polly.WordProvider"
-            android:enabled="true"
-            android:exported="true"
-            android:multiprocess="true"
-            android:grantUriPermissions="true"
-            android:permission="@string/read" />
+        <activity android:name=".ChooseLevel" />
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation" />
+
     </application>
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
 
 </manifest>

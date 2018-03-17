@@ -1,4 +1,3 @@
 <resources>
-    <string name="app_name">Amazon Polly Demo</string>
-    <string name="read">Read</string>
+    <string name="app_name">Polly</string>
 </resources>

@@ -15,97 +15,198 @@
 
 package com.amazonaws.demo.polly;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
-import android.content.ContentProvider;
-import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.WindowManager;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ListAdapter;
-import android.widget.ListView;
-import android.widget.SimpleCursorAdapter;
-import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
-import com.amazonaws.http.HttpClient;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.polly.AmazonPollyPresigningClient;
-import com.amazonaws.services.polly.model.DescribeVoicesRequest;
-import com.amazonaws.services.polly.model.DescribeVoicesResult;
 import com.amazonaws.services.polly.model.OutputFormat;
 import com.amazonaws.services.polly.model.SynthesizeSpeechPresignRequest;
 import com.amazonaws.services.polly.model.Voice;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.BasicResponseHandler;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Serializable;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.util.ArrayList;
 import java.util.List;
-import android.util.Log;
 
-public class MainActivity extends Activity implements View.OnClickListener {
+public class MainActivity extends Activity implements View.OnClickListener{
+    
+	private static final String TAG = "PollyDemo";
 
-    private static final String TAG = "PollyDemo";
-
-    // Cognito pool ID. For this app, pool needs to be unauthenticated pool with
+	// Cognito pool ID. For this app, pool needs to be unauthenticated pool with
     // Amazon Polly permissions.
     private static final String COGNITO_POOL_ID = "ap-south-1:47757fa1-db3b-4b75-a084-72b6a6482c3e";
 
     // Region of Amazon Polly.
     private static final Regions MY_REGION = Regions.AP_SOUTH_1;
-
+    private static int k = 0;   //global variable to manipulate the words array
+    public String[] words = {""};   //array to store the words retrieved from the server
     CognitoCachingCredentialsProvider credentialsProvider;
-
+    MediaPlayer mediaPlayer;
+    ImageButton play, prev, next, submit, home;   //listen to their clicks from the second activity
+    EditText ed;
     private AmazonPollyPresigningClient client;
     private List<Voice> voices;
-    MediaPlayer mediaPlayer;
 
-    private static int k = 0;   //global variable to manipulate the words array
+    //Method to handle the onClickListener for the ImageButtons
+    @Override
+    public void onClick(View view) {
 
-    public String[] words = {""};   //array to store the words retrieved from the server
+        Play p = new Play();
 
-    ImageButton play, prev, next;   //listen to their clicks from the second activity
+        switch(view.getId()) {
+            case R.id.playButton:   p.execute(view);
+                                    break;
 
+            case R.id.nextButton:   p.execute(view);
+                                    break;
+
+            case R.id.prevButton:   p.execute(view);
+                                    break;
+
+            case R.id.submit:{
+
+                                String cword = ed.getText().toString().trim();
+
+                                if (!(cword.equalsIgnoreCase(words[k]))) {
+                                    setupPlayButton("Oops! Try Again!");
+                                    ed.setText("");
+                                    Toast.makeText(getApplicationContext(), "Oops! Try again!", Toast.LENGTH_SHORT).show();
+                                } else if (cword.equalsIgnoreCase(words[k])) {
+                                    setupPlayButton("Good Job!");
+                                    ed.setText("");
+                                    Toast.makeText(getApplicationContext(), "Good Job!", Toast.LENGTH_SHORT).show();
+                                } else if(cword.equals("")){
+                                    setupPlayButton("Type the word");
+                                    Toast.makeText(getApplicationContext(), "Type the word", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                            break;
+
+            case R.id.home: {
+                Intent k=new Intent(MainActivity.this,ChooseLevel.class);
+                startActivity(k);
+                }
+                break;
+            }
+        }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        //Get the available Polly voices
+  //      GetPollyVoices gt=new GetPollyVoices();
+  //      gt.execute();
+
+        initPollyClient();
+        setupNewMediaPlayer();
+
+        //Get the level from the extras sent by ChooseLevel
+        Bundle bundle = getIntent().getExtras();
+        words = bundle.getStringArray("MyArray");
+
+        //Create objects for the ImageButtons
+        play=(ImageButton)findViewById(R.id.playButton);
+        prev=(ImageButton)findViewById(R.id.prevButton);
+        next=(ImageButton)findViewById(R.id.nextButton);
+        submit=(ImageButton)findViewById(R.id.submit);
+        home=(ImageButton)findViewById(R.id.home);
+        ed = (EditText) findViewById(R.id.check_word);
+
+        //set OnClickListeners to them
+        play.setOnClickListener(this);
+        prev.setOnClickListener(this);
+        next.setOnClickListener(this);
+
+        //Check for the word entered; if correct or wrong
+        submit.setOnClickListener(this);
+        home.setOnClickListener(this);
+    }
+
+    void initPollyClient() {
+        // Initialize the Amazon Cognito credentials provider.
+        credentialsProvider = new CognitoCachingCredentialsProvider(
+                getApplicationContext(),
+                COGNITO_POOL_ID,
+                MY_REGION
+        );
+
+        // Create a client that supports generation of presigned URLs.
+        client = new AmazonPollyPresigningClient(credentialsProvider);
+    }
+
+    void setupNewMediaPlayer() {
+        mediaPlayer = new MediaPlayer();
+        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                mp.release();
+                setupNewMediaPlayer();
+            }
+        });
+        mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(MediaPlayer mp) {
+                mp.start();
+            }
+        });
+        mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                return false;
+            }
+        });
+    }
+
+    void setupPlayButton(String word) {
+
+                // Create speech synthesis request.
+                SynthesizeSpeechPresignRequest synthesizeSpeechPresignRequest =
+                        new SynthesizeSpeechPresignRequest()
+                        // Set text to synthesize.
+                        .withText(word)
+                        // Set voice selected by the user.
+                        .withVoiceId("Aditi")
+                        // Set format to MP3.
+                        .withOutputFormat(OutputFormat.Mp3);
+
+                // Get the presigned URL for synthesized speech audio stream.
+                URL presignedSynthesizeSpeechUrl =
+                        client.getPresignedSynthesizeSpeechUrl(synthesizeSpeechPresignRequest);
+
+                Log.i(TAG, "Playing speech from presigned URL: " + presignedSynthesizeSpeechUrl);
+
+                // Create a media player to play the synthesized audio stream.
+                if (mediaPlayer.isPlaying()) {
+                    setupNewMediaPlayer();
+                }
+                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+                try {
+                    // Set media player's data source to previously obtained URL.
+                    mediaPlayer.setDataSource(presignedSynthesizeSpeechUrl.toString());
+                } catch (IOException e) {
+                    Log.e(TAG, "Unable to set data source for the media player! " + e.getMessage());
+                }
+
+                // Start the playback asynchronously (since the data source is a network stream).
+                mediaPlayer.prepareAsync();
+    }
+
+/*
     private class GetPollyVoices extends AsyncTask<Void, Void, Void> {
-
         @Override
         protected Void doInBackground(Void... params) {
             if (voices != null) {
@@ -132,35 +233,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
             return null;
         }
-    }
-
-    //Asynchronous class to fetch words from the server
-    public class Fetch extends AsyncTask<String, Void, Void>{
 
         @Override
-        protected Void doInBackground(String... strings) {
-
-            try {
-
-                URL url = new URL("http://ec2-13-126-241-54.ap-south-1.compute.amazonaws.com/test.php?name="+strings[0]);
-
-                HttpURLConnection con=(HttpURLConnection)url.openConnection();
-
-                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-                String inputLine;
-
-                inputLine = in.readLine();
-                words= inputLine.split(",");
-
-            } finally{
-                return null;
+        protected void onPostExecute(Void aVoid) {
+            if (voices == null) {
+                return;
             }
         }
     }
-
+*/
+    //Class to call the setUpPlayButton method based on the option selected [play,prev,next]
     public class Play extends AsyncTask<View, Void, Void>{
 
+        Intent i=new Intent(getApplicationContext(),ChooseLevel.class);
         @Override
         protected Void doInBackground(View... views) {
 
@@ -169,7 +254,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     k--;
                     setupPlayButton(words[k]);
                 } else if(k==words.length-1) {
-                    setupPlayButton("You have completed this level! Change the level!");
+                    k=0;
+                    setupPlayButton("You have completed this level! Choose the next level!");
+                    startActivity(i);
                 } else{
                     setupPlayButton(words[0]);
                 }
@@ -181,7 +268,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     k++;
                     setupPlayButton(words[k]);
                 } else if(k==words.length-1) {
-                    setupPlayButton("You have completed this level! Change the level!");
+                    k=0;
+                    setupPlayButton("You have completed this level! Choose the next level!");
+                    startActivity(i);
                 } else{
                     setupPlayButton(words[words.length - 1]);
                 }
@@ -189,150 +278,4 @@ public class MainActivity extends Activity implements View.OnClickListener {
             return null;
         }
     }
-
-    //Method to handle the onClickListener for the ImageButtons
-    @Override
-    public void onClick(View view) {
-        Play p=new Play();
-        p.execute(view);
-    }
-
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-        @Override
-        protected void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-          setContentView(R.layout.activity_main);
-
-            //Get the available Polly voices
-            GetPollyVoices gt=new GetPollyVoices();
-            gt.execute();
-
-            //Get the level from the extras sent by ChooseLevel
-            Bundle bundle = getIntent().getExtras();
-            String level = bundle.getString("key");
-
-            initPollyClient();
-            setupNewMediaPlayer();
-
-            //Fetch the words from the server
-            Fetch f=new Fetch();
-            f.execute(level);
-
-            //Create objects for the ImageButtons
-            play=(ImageButton)findViewById(R.id.playButton);
-            prev=(ImageButton)findViewById(R.id.prevButton);
-            next=(ImageButton)findViewById(R.id.nextButton);
-
-            //set OnClickListeners to them
-            play.setOnClickListener(this);
-            prev.setOnClickListener(this);
-            next.setOnClickListener(this);
-
-
-            EditText ed = (EditText) findViewById(R.id.check_word);
-            ImageButton submit=(ImageButton)findViewById(R.id.submit);
-
-            //Check for the word entered; if correct or wrong
-            submit.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                    String cword = ed.getText().toString().trim();
-
-                    if (cword.equals(null)) {
-                        setupPlayButton("Type the word");
-                        Toast.makeText(getApplicationContext(), "Type the word", Toast.LENGTH_SHORT).show();
-                    } else if (cword.equalsIgnoreCase(words[k])) {
-                        setupPlayButton("Good Job!");
-                        ed.setText("");
-                        Toast.makeText(getApplicationContext(), "Good Job!", Toast.LENGTH_LONG).show();
-                    } else if(!(cword.equalsIgnoreCase(words[k]))){
-                        setupPlayButton("Oops! Try Again!");
-                        ed.setText("");
-                        Toast.makeText(getApplicationContext(), "Try again!", Toast.LENGTH_SHORT).show();
-                    }
-
-                }
-            });
-
-            ImageButton home=(ImageButton)findViewById(R.id.home);
-            home.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent k=new Intent(MainActivity.this,ChooseLevel.class);
-                    startActivity(k);
-                    }
-            });
-        }
-
-        void initPollyClient() {
-            // Initialize the Amazon Cognito credentials provider.
-            credentialsProvider = new CognitoCachingCredentialsProvider(
-                    getApplicationContext(),
-                    COGNITO_POOL_ID,
-                    MY_REGION
-            );
-
-            // Create a client that supports generation of presigned URLs.
-            client = new AmazonPollyPresigningClient(credentialsProvider);
-        }
-
-        void setupNewMediaPlayer() {
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    mp.release();
-                    setupNewMediaPlayer();
-                }
-            });
-            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                @Override
-                public void onPrepared(MediaPlayer mp) {
-                    mp.start();
-                }
-            });
-            mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-                @Override
-                public boolean onError(MediaPlayer mp, int what, int extra) {
-
-                    return false;
-                }
-            });
-        }
-
-        void setupPlayButton(String word) {
-
-            // Create speech synthesis request.
-            SynthesizeSpeechPresignRequest synthesizeSpeechPresignRequest =
-                    new SynthesizeSpeechPresignRequest()
-                            // Set text to synthesize.
-                            .withText(word)
-                            // Set voice to Indian English Aditi.
-                            .withVoiceId("Aditi")
-                            // Set format to MP3.
-                            .withOutputFormat(OutputFormat.Mp3);
-
-            // Get the presigned URL for synthesized speech audio stream.
-            URL presignedSynthesizeSpeechUrl =
-                    client.getPresignedSynthesizeSpeechUrl(synthesizeSpeechPresignRequest);
-
-            Log.i(TAG, "Playing speech from presigned URL: " + presignedSynthesizeSpeechUrl);
-
-            // Create a media player to play the synthesized audio stream.
-            if (mediaPlayer.isPlaying()) {
-                setupNewMediaPlayer();
-            }
-            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-
-            try {
-                // Set media player's data source to previously obtained URL.
-                mediaPlayer.setDataSource(presignedSynthesizeSpeechUrl.toString());
-            } catch (IOException e) {
-                Log.e(TAG, "Unable to set data source for the media player! " + e.getMessage());
-            }
-
-            // Start the playback asynchronously (since the data source is a network stream).
-            mediaPlayer.prepareAsync();
-        }
-    }
+}
