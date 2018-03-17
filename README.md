@@ -35,6 +35,7 @@
   1. networkOnMainThreadException()
       -This error occurs mainly when the UI thread or the main thread is doing a lot of heavy processing.
   2. Huge number of frames being skipped.
+      -It's okay to have few frames being skipped, say frames < 100. But if the numer of frames being skipped exceeds, which was my case(351, 455 frames skipped), then your app is in deep trouble.
 
 # Solution found
   1. Heavy processing includes making network calls like Http Requests, loading URL's etc.
